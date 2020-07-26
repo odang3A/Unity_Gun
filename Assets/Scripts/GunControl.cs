@@ -41,7 +41,7 @@ public class GunControl : MonoBehaviour
         {
             control();
 
-            // 실행순서 주의할것
+            // 실행순서 주의할것 // tlakrf
 
             if (Input.GetKeyDown("x"))
             {   // weapon down
