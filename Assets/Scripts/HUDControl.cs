@@ -13,7 +13,8 @@ public class HUDControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        Ammo.enabled = false;
+        FireMode.enabled = false;
     }
 
     public void updateAmmo(int currMag, int currAmmo)   // update ammo

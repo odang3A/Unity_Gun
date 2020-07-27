@@ -16,6 +16,7 @@ public class GunControl : MonoBehaviour
 
     bool isEquip = false;   // is equiped
     bool isFireable = false;    // is fireable
+    bool isReloading = false;   // is reloading
     int fireMode;       // fire mode    // -1: single, 1: auto
     int currMag;        // current bullets in mag
     float nextTimeToFire = 0f;  // time to fire
@@ -23,6 +24,7 @@ public class GunControl : MonoBehaviour
     HUDControl hudControl;  // HUD
     BoxCollider[] gunColliders; // guns colliders
     Rigidbody gunRb;    // guns rigidbody
+    Animator gunAnimator;   // guns animator
 
     // effects
     public ParticleSystem muzzleFlash;  // muzzle flash effect
@@ -33,6 +35,8 @@ public class GunControl : MonoBehaviour
     {
         gunColliders = GetComponents<BoxCollider>();    // get guns colliders
         gunRb = GetComponent<Rigidbody>();              // get guns rigidbody
+        gunAnimator = GetComponent<Animator>(); // get guns animator
+        gunAnimator.enabled = false; // stops animation
     }
 
     // Update is called once per frame
@@ -49,17 +53,16 @@ public class GunControl : MonoBehaviour
                 unequip();
             }
 
-            if(Input.GetKeyDown("r") || currMag <= 0)
+            if(Input.GetKeyDown("r") || currMag <= 0 && !isReloading)       // reload gun
             {
-                //StartCoroutine(reload());
-                unequip();
-                Debug.Log("tlqkf");
+                isReloading = true;
+                reload();   // reload coroutine
             }
 
         }
     }
 
-    void control()
+    void control()  // main control
     {
         if (Input.GetKeyDown("b") && isSelectiveFire)   // change fire mode
         {
@@ -90,9 +93,9 @@ public class GunControl : MonoBehaviour
         aim(Input.GetMouseButton(1));   // set aim
     }
 
-    void fire()
+    void fire()     // fire
     {
-        currMag--;  // 
+        currMag--;  // pop one bullet
         hudControl.updateAmmo(currMag, currAmmo);   // update Ammo HUD
 
         nextTimeToFire = Time.time + 1f / fireRate;     // fire rate
@@ -117,15 +120,21 @@ public class GunControl : MonoBehaviour
     }
 
     void aim(bool isAimed)  // aim
-    {   
-        transform.localPosition = (isAimed ? aimLoc : hipLoc);  // gun to aim location
-        FPSCamera.GetComponent<Camera>().fieldOfView = (isAimed ? 30f : 60f);   // zoom in
+    {
+        // control with animation
+        // transform.localPosition = (isAimed ? aimLoc : hipLoc);  // gun to aim location
+        gunAnimator.SetBool("isAiming", isAimed);   // toggle idle and aim animation
+        FPSCamera.GetComponent<Camera>().fieldOfView = (transform.localPosition == aimLoc ? 30f : 60f);   // zoom in
         hudControl.showCrosshair(isAimed);  // disable crosshair HUD
     }
 
-    IEnumerator reload()   // reload
+    void reload()   // reload
     {
-        yield return new WaitForSeconds(1);
+        gunAnimator.SetBool("isReloading", isReloading);   // start playing reload animation
+          // reload time
+        gunAnimator.SetBool("isReloading", isReloading = false);  // end playing reload animation
+        currMag = capacity + 1;                  // fill mag
+        hudControl.updateAmmo(currMag, currAmmo);   // update ammo
     }
 
     void unequip()   // unequip guns
@@ -138,7 +147,9 @@ public class GunControl : MonoBehaviour
         {
             gunCollider.enabled = true;
         }
+
         gunRb.useGravity = true;    // set physics
+        gunAnimator.enabled = false;     // stops animation
     }
 
     public void SetGunType(string name, Vector3 hipLoc, Vector3 aimLoc, float damage, float fireRate, bool isSelectiveFire, int defaultFireMode, int capacity)
@@ -156,7 +167,7 @@ public class GunControl : MonoBehaviour
     }
 
 
-    public void Selected(Transform selector)
+    public void Selected(Transform selector)    // equip
     {
         isEquip = true;
         FPSCamera = selector;
@@ -170,10 +181,12 @@ public class GunControl : MonoBehaviour
 
         // set gun location, rotation, physics
         transform.SetParent(FPSCamera);
-        transform.localPosition = hipLoc;
-        transform.localRotation = Quaternion.identity;
+        // controle with animation
+        //transform.localPosition = hipLoc;
+        //transform.localRotation = Quaternion.identity;
         gunRb.angularVelocity = Vector3.zero;
         gunRb.useGravity = false;
+        gunAnimator.enabled = true; // starts animation
 
         // update HUD
         hudControl.showGunInfo(isEquip);        // show gun info UHD
