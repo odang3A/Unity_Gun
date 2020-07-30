@@ -86,6 +86,11 @@ public class PlayerControl : MonoBehaviour
 
                 if (target.transform.tag == "Gun")
                 {
+                    if (FPSCamera.transform.childCount > 0)
+                    {
+                        FPSCamera.transform.GetChild(0).GetComponent<GunControl>().unequip();
+                    }
+
                     GunControl gunControl = target.transform.GetComponent<GunControl>();
                     gunControl.Selected(FPSCamera.transform);
                 }

@@ -51,6 +51,7 @@ public class GunControl : MonoBehaviour
         {
             control();  // main control of the guns (fire, aim, fire mode)
 
+
             // 실행순서 주의할것
 
             if (Input.GetKeyDown("x"))      // unequip guns
@@ -89,13 +90,12 @@ public class GunControl : MonoBehaviour
             {
                 gunAnimator.SetBool("isReloading", isReloading = false);    // cancle reload animation
                 if (reloadCoroutine != null) { StopCoroutine(reloadCoroutine); }    // cancle reload
-                gunAnimator.SetTrigger("ForceToIdle");          // force to idle
             }
             fire();
         }
 
         // aim
-        if (Input.GetMouseButtonDown(1))    // enable aim
+        if (Input.GetMouseButtonDown(1) && currMag > 0)    // enable aim
         {
             forceToIdle();                  // force to idle
             isAiming = true;
@@ -130,7 +130,7 @@ public class GunControl : MonoBehaviour
 
         muzzleFlash.Play(); // play muzzle flash effects
 
-        if (!isAiming)  // if hip fireing apply accuracy
+        if (FPSCamera.GetComponent<Camera>().fieldOfView == 60f)  // if hip fireing apply accuracy
         {
             spread = Random.insideUnitSphere/3f * (1f - accuracy);
             Debug.Log(spread);
@@ -151,6 +151,9 @@ public class GunControl : MonoBehaviour
             GameObject impactObj = Instantiate(hitImpact, hit.point, Quaternion.LookRotation(hit.normal));  // instantiate hit impact effect
             Destroy(impactObj, 1);  // destroy hit impact effect
         }
+
+        // start fire animation
+        gunAnimator.SetTrigger("Fire");
     }
 
     void aim(bool isAimed)  // aim
@@ -161,10 +164,12 @@ public class GunControl : MonoBehaviour
         if(transform.localPosition == aimLoc && isAimed)
         {
             FPSCamera.GetComponent<Camera>().fieldOfView = 30f;   // zoom in
+            gunAnimator.SetBool("isAimed", true);   // set is aimed
         }
         else if (!isAimed)
         {
             FPSCamera.GetComponent<Camera>().fieldOfView = 60f;   // zoom out
+            gunAnimator.SetBool("isAimed", false);  // set is not aimed
         }
         hudControl.showCrosshair(!isAimed);  // disable crosshair HUD
     }
@@ -186,7 +191,7 @@ public class GunControl : MonoBehaviour
         gunAnimator.SetBool("isAiming", isAiming = false);      // cancle aiming animation
     }
 
-    void unequip()   // unequip guns
+    public void unequip()   // unequip guns
     {
         forceToIdle();
         isEquip = false;    // unequip

@@ -9,7 +9,7 @@ public class AKControl : MonoBehaviour
     // gun stats
     string gunName = "AK";
     Vector3 AKHipLoc = new Vector3(0.5f, -0.32f, 1f);
-    Vector3 AKAimLoc = new Vector3(0f, -0.266f, 1f);
+    Vector3 AKAimLoc = new Vector3(0f, -0.266f, 1.05f);
     float AKDamage = 10f;
     float AKFireRate = 10; // pre sec
     float AKReloadTime = 2f;
