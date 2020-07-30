@@ -10,6 +10,9 @@ public class GunControl : MonoBehaviour
     Vector3 aimLoc;     // aim location
     float damage;       // damage amount (knockback force)
     float fireRate;     // fire rate
+    float reloadTime;  // reload time
+    float accuracy;       // accuracy while hip fireing
+    float recoil;       // recoil
     bool isSelectiveFire;   // is selective fire
     int capacity;       // capacity
     int currAmmo;       // current ammo amount
@@ -17,6 +20,8 @@ public class GunControl : MonoBehaviour
     bool isEquip = false;   // is equiped
     bool isFireable = false;    // is fireable
     bool isReloading = false;   // is reloading
+    IEnumerator reloadCoroutine; // reload coroutine
+    bool isAiming = false;      // is aiming
     int fireMode;       // fire mode    // -1: single, 1: auto
     int currMag;        // current bullets in mag
     float nextTimeToFire = 0f;  // time to fire
@@ -52,25 +57,20 @@ public class GunControl : MonoBehaviour
             {
                 unequip();
             }
-
-            if(Input.GetKeyDown("r") || currMag <= 0 && !isReloading)       // reload gun
-            {
-                isReloading = true;
-                reload();   // reload coroutine
-            }
-
         }
     }
 
     void control()  // main control
-    {
-        if (Input.GetKeyDown("b") && isSelectiveFire)   // change fire mode
+    {   
+        // change fire mode
+        if (Input.GetKeyDown("b") && isSelectiveFire)
         {
             fireMode *= -1;     // -1: single, 1: auto
             hudControl.changeFireMode(fireMode);    // update fire mode HUD
         }
-
-        switch (fireMode)   // check fire mode
+        
+        // check fire mode
+        switch (fireMode)
         {   // -1: single, 1: auto
             case -1:
                 isFireable = Input.GetMouseButtonDown(0);   // single
@@ -82,19 +82,47 @@ public class GunControl : MonoBehaviour
                 break;
         }
 
-
-        if (isFireable && currMag > 0)   // fire
+        // fire
+        if (isFireable && currMag > 0)   // if able to fire
         {
+            if (isReloading)    // if was reloading
+            {
+                gunAnimator.SetBool("isReloading", isReloading = false);    // cancle reload animation
+                if (reloadCoroutine != null) { StopCoroutine(reloadCoroutine); }    // cancle reload
+                gunAnimator.SetTrigger("ForceToIdle");          // force to idle
+            }
             fire();
         }
 
-
         // aim
-        aim(Input.GetMouseButton(1));   // set aim
+        if (Input.GetMouseButtonDown(1))    // enable aim
+        {
+            forceToIdle();                  // force to idle
+            isAiming = true;
+        }
+        if (Input.GetMouseButtonUp(1))      // disable aim
+        {
+            isAiming = false;
+        }
+        aim(isAiming);                      // set aim
+
+        // reload
+        if (!isReloading && (currMag < capacity + 1))   // if able to reload
+        {
+            if (Input.GetKeyDown("r") || currMag <= 0)       // reload gun
+                {
+                    forceToIdle();              // force to idle
+                    isReloading = true;         // set isReloading true
+                    reloadCoroutine = reload();
+                    StartCoroutine(reloadCoroutine);   // start reload coroutine
+                }
+        }
     }
 
     void fire()     // fire
     {
+        Vector3 spread = Vector3.zero;
+
         currMag--;  // pop one bullet
         hudControl.updateAmmo(currMag, currAmmo);   // update Ammo HUD
 
@@ -102,8 +130,14 @@ public class GunControl : MonoBehaviour
 
         muzzleFlash.Play(); // play muzzle flash effects
 
+        if (!isAiming)  // if hip fireing apply accuracy
+        {
+            spread = Random.insideUnitSphere/3f * (1f - accuracy);
+            Debug.Log(spread);
+        }
+
         RaycastHit hit;
-        if (Physics.Raycast(FPSCamera.position, FPSCamera.forward, out hit))   // if hit something
+        if (Physics.Raycast(FPSCamera.position, FPSCamera.forward + spread, out hit))   // if hit something
         {
             Debug.Log("We hit " + hit.collider.name + ": " + hit.point);    // hit log
 
@@ -124,23 +158,40 @@ public class GunControl : MonoBehaviour
         // control with animation
         // transform.localPosition = (isAimed ? aimLoc : hipLoc);  // gun to aim location
         gunAnimator.SetBool("isAiming", isAimed);   // toggle idle and aim animation
-        FPSCamera.GetComponent<Camera>().fieldOfView = (transform.localPosition == aimLoc ? 30f : 60f);   // zoom in
-        hudControl.showCrosshair(isAimed);  // disable crosshair HUD
+        if(transform.localPosition == aimLoc && isAimed)
+        {
+            FPSCamera.GetComponent<Camera>().fieldOfView = 30f;   // zoom in
+        }
+        else if (!isAimed)
+        {
+            FPSCamera.GetComponent<Camera>().fieldOfView = 60f;   // zoom out
+        }
+        hudControl.showCrosshair(!isAimed);  // disable crosshair HUD
     }
 
-    void reload()   // reload
+    IEnumerator reload()   // reload
     {
         gunAnimator.SetBool("isReloading", isReloading);   // start playing reload animation
-          // reload time
+        yield return new WaitForSeconds(reloadTime);  // wait for reload time
+
         gunAnimator.SetBool("isReloading", isReloading = false);  // end playing reload animation
         currMag = capacity + 1;                  // fill mag
         hudControl.updateAmmo(currMag, currAmmo);   // update ammo
     }
 
+    void forceToIdle()
+    {
+        gunAnimator.SetBool("isReloading", isReloading = false);    // cancle reload animation
+        if (reloadCoroutine != null) { StopCoroutine(reloadCoroutine); }    // cancle reload
+        gunAnimator.SetBool("isAiming", isAiming = false);      // cancle aiming animation
+    }
+
     void unequip()   // unequip guns
     {
-        aim(false); // disable aim
+        forceToIdle();
         isEquip = false;    // unequip
+        FPSCamera.GetComponent<Camera>().fieldOfView = 60f;     // reset zoom
+        hudControl.showCrosshair(true);
         hudControl.showGunInfo(isEquip);    // disable guninfo UHD
         transform.parent = transform.root.parent;   // set parent to null
         foreach (BoxCollider gunCollider in gunColliders)   // enable colliders
@@ -152,13 +203,15 @@ public class GunControl : MonoBehaviour
         gunAnimator.enabled = false;     // stops animation
     }
 
-    public void SetGunType(string name, Vector3 hipLoc, Vector3 aimLoc, float damage, float fireRate, bool isSelectiveFire, int defaultFireMode, int capacity)
+    public void SetGunType(string name, Vector3 hipLoc, Vector3 aimLoc, float damage, float fireRate, float reloadTime, float accuracy, bool isSelectiveFire, int defaultFireMode, int capacity)
     {
         gunName = name;         // name
         this.hipLoc = hipLoc;   // hip location
         this.aimLoc = aimLoc;   // aim location
         this.damage = damage;   // damage (knockback force)
         this.fireRate = fireRate;   // fire rate
+        this.reloadTime = reloadTime;   // reloadTime
+        this.accuracy = accuracy;       // accuracy while hip fireing
         this.isSelectiveFire = isSelectiveFire; // is selective fire
         fireMode = defaultFireMode;     // default fire mode
         this.capacity = capacity;       // gun capacity
@@ -184,6 +237,7 @@ public class GunControl : MonoBehaviour
         // controle with animation
         //transform.localPosition = hipLoc;
         //transform.localRotation = Quaternion.identity;
+        gunRb.velocity = Vector3.zero;
         gunRb.angularVelocity = Vector3.zero;
         gunRb.useGravity = false;
         gunAnimator.enabled = true; // starts animation

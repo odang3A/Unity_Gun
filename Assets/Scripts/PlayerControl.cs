@@ -112,7 +112,7 @@ public class PlayerControl : MonoBehaviour
             stepping.Add(target);
         }
 
-        Debug.Log("Enter " + target.gameObject.name);
+        //Debug.Log("Enter " + target.gameObject.name);
     }
 
     void OnCollisionExit(Collision target)
@@ -122,10 +122,10 @@ public class PlayerControl : MonoBehaviour
             jumpCnt++;
             stepping.Remove(target);
 
-            Debug.Log("hh: " + jumpCnt);
+            //Debug.Log("hh: " + jumpCnt);
         }
 
-        Debug.Log("Exit: " + target.gameObject.name);
+        //Debug.Log("Exit: " + target.gameObject.name);
     }
 
     float get_XZ_Magnitude(Vector3 v)

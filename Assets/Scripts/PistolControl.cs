@@ -12,6 +12,8 @@ public class PistolControl : MonoBehaviour
     Vector3 pistolAimLoc = new Vector3(0f, -0.155f, 0.6f);
     float pistolDamage = 10f;
     float pistolFireRate = 0; // single
+    float pistolReloadTime = 1.5f;
+    float pistolAccuracy = 0.75f;
     bool isSelectiveFire = false;
     int pistolCapacity = 12;
 
@@ -19,7 +21,7 @@ public class PistolControl : MonoBehaviour
     void Start()
     {
         gunControl = transform.GetComponent<GunControl>();
-        gunControl.SetGunType(gunName, pistolHipLoc, pistolAimLoc, pistolDamage, pistolFireRate, isSelectiveFire, -1, pistolCapacity);
+        gunControl.SetGunType(gunName, pistolHipLoc, pistolAimLoc, pistolDamage, pistolFireRate, pistolReloadTime, pistolAccuracy, isSelectiveFire, -1, pistolCapacity);
     }
     
 }

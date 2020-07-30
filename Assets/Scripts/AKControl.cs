@@ -12,6 +12,8 @@ public class AKControl : MonoBehaviour
     Vector3 AKAimLoc = new Vector3(0f, -0.266f, 1f);
     float AKDamage = 10f;
     float AKFireRate = 10; // pre sec
+    float AKReloadTime = 2f;
+    float AKAccuracy = 0.7f;
     bool isSelectiveFire = true;
     int AKCapacity = 30;
 
@@ -19,7 +21,7 @@ public class AKControl : MonoBehaviour
     void Start()
     {
         gunControl = transform.GetComponent<GunControl>();
-        gunControl.SetGunType(gunName, AKHipLoc, AKAimLoc, AKDamage, AKFireRate, isSelectiveFire, 1, AKCapacity);
+        gunControl.SetGunType(gunName, AKHipLoc, AKAimLoc, AKDamage, AKFireRate, AKReloadTime, AKAccuracy, isSelectiveFire, 1, AKCapacity);
     }
     
 }

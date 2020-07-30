@@ -43,9 +43,9 @@ public class HUDControl : MonoBehaviour
         FireMode.enabled = isEquip;
     }
 
-    public void showCrosshair(bool isAimed) // show crosshair if not aiming
+    public void showCrosshair(bool show) // show crosshair if not aiming
     {
-        Crosshair.enabled = !isAimed;
+        Crosshair.enabled = show;
     }
 
 }
